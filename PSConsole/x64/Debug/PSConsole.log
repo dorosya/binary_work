@@ -1,0 +1,12 @@
+﻿  main.cpp
+  BinaryIO.cpp
+  ConsoleUtf8.cpp
+  UtfConv.cpp
+  Parsing.cpp
+  ProductFile.cpp
+  SpecFile.cpp
+  CatalogService.cpp
+  CommandRegistry.cpp
+  Commands.cpp
+  Создание кода...
+  PSConsole.vcxproj -> C:\Users\dorosya\Desktop\1lab_qt\x64\Debug\PSConsole.exe

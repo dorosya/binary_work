@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src"><UniqueIdentifier>{D2A12541-5A0D-414E-B0B6-DA2F2680D6CA}</UniqueIdentifier></Filter>
+    <Filter Include="src\core"><UniqueIdentifier>{0E1A1C62-2EE5-4DCE-8D8B-3C2E22CBAE18}</UniqueIdentifier></Filter>
+    <Filter Include="src\domain"><UniqueIdentifier>{14EBA33B-7E1D-4FD3-BAA4-7F1A6B5E6B82}</UniqueIdentifier></Filter>
+    <Filter Include="src\infra"><UniqueIdentifier>{1C07D5A7-7369-4F3A-A3D9-7E0D238A6D69}</UniqueIdentifier></Filter>
+    <Filter Include="src\services"><UniqueIdentifier>{A5E7E6E7-7E7E-4D0C-9AA3-7D3C4D07D4C4}</UniqueIdentifier></Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\core\Errors.h"><Filter>src\core</Filter></ClInclude>
+    <ClInclude Include="src\core\BinaryIO.h"><Filter>src\core</Filter></ClInclude>
+    <ClInclude Include="src\core\ConsoleUtf8.h"><Filter>src\core</Filter></ClInclude>
+    <ClInclude Include="src\core\UtfConv.h"><Filter>src\core</Filter></ClInclude>
+    <ClInclude Include="src\domain\Models.h"><Filter>src\domain</Filter></ClInclude>
+    <ClInclude Include="src\domain\Parsing.h"><Filter>src\domain</Filter></ClInclude>
+    <ClInclude Include="src\infra\ProductFile.h"><Filter>src\infra</Filter></ClInclude>
+    <ClInclude Include="src\infra\SpecFile.h"><Filter>src\infra</Filter></ClInclude>
+    <ClInclude Include="src\services\CatalogService.h"><Filter>src\services</Filter></ClInclude>
+    <ClInclude Include="src\services\CommandRegistry.h"><Filter>src\services</Filter></ClInclude>
+    <ClInclude Include="src\services\Commands.h"><Filter>src\services</Filter></ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp"><Filter>src</Filter></ClCompile>
+    <ClCompile Include="src\core\BinaryIO.cpp"><Filter>src\core</Filter></ClCompile>
+    <ClCompile Include="src\core\ConsoleUtf8.cpp"><Filter>src\core</Filter></ClCompile>
+    <ClCompile Include="src\core\UtfConv.cpp"><Filter>src\core</Filter></ClCompile>
+    <ClCompile Include="src\domain\Parsing.cpp"><Filter>src\domain</Filter></ClCompile>
+    <ClCompile Include="src\infra\ProductFile.cpp"><Filter>src\infra</Filter></ClCompile>
+    <ClCompile Include="src\infra\SpecFile.cpp"><Filter>src\infra</Filter></ClCompile>
+    <ClCompile Include="src\services\CatalogService.cpp"><Filter>src\services</Filter></ClCompile>
+    <ClCompile Include="src\services\CommandRegistry.cpp"><Filter>src\services</Filter></ClCompile>
+    <ClCompile Include="src\services\Commands.cpp"><Filter>src\services</Filter></ClCompile>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,10 @@
+C:\Users\dorosya\Desktop\1lab_qt\PSConsole\src\main.cpp;C:\Users\dorosya\Desktop\1lab_qt\PSConsole\x64\Debug\main.obj
+C:\Users\dorosya\Desktop\1lab_qt\PSConsole\src\core\BinaryIO.cpp;C:\Users\dorosya\Desktop\1lab_qt\PSConsole\x64\Debug\BinaryIO.obj
+C:\Users\dorosya\Desktop\1lab_qt\PSConsole\src\core\ConsoleUtf8.cpp;C:\Users\dorosya\Desktop\1lab_qt\PSConsole\x64\Debug\ConsoleUtf8.obj
+C:\Users\dorosya\Desktop\1lab_qt\PSConsole\src\core\UtfConv.cpp;C:\Users\dorosya\Desktop\1lab_qt\PSConsole\x64\Debug\UtfConv.obj
+C:\Users\dorosya\Desktop\1lab_qt\PSConsole\src\domain\Parsing.cpp;C:\Users\dorosya\Desktop\1lab_qt\PSConsole\x64\Debug\Parsing.obj
+C:\Users\dorosya\Desktop\1lab_qt\PSConsole\src\infra\ProductFile.cpp;C:\Users\dorosya\Desktop\1lab_qt\PSConsole\x64\Debug\ProductFile.obj
+C:\Users\dorosya\Desktop\1lab_qt\PSConsole\src\infra\SpecFile.cpp;C:\Users\dorosya\Desktop\1lab_qt\PSConsole\x64\Debug\SpecFile.obj
+C:\Users\dorosya\Desktop\1lab_qt\PSConsole\src\services\CatalogService.cpp;C:\Users\dorosya\Desktop\1lab_qt\PSConsole\x64\Debug\CatalogService.obj
+C:\Users\dorosya\Desktop\1lab_qt\PSConsole\src\services\CommandRegistry.cpp;C:\Users\dorosya\Desktop\1lab_qt\PSConsole\x64\Debug\CommandRegistry.obj
+C:\Users\dorosya\Desktop\1lab_qt\PSConsole\src\services\Commands.cpp;C:\Users\dorosya\Desktop\1lab_qt\PSConsole\x64\Debug\Commands.obj
