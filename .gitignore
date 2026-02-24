@@ -1,2 +1,8 @@
-build 
-.vs
+.vs/
+*.ipch
+*.obj
+*.exe
+*.pdb
+Debug/
+Release/
+Build/
