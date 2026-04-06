@@ -1,12 +1,10 @@
 #include <iostream>
 #include <string>
 
-#include "core/Errors.h"
 #include "core/ConsoleUtf8.h"
+#include "core/Errors.h"
 #include "core/UtfConv.h"
-
 #include "domain/Parsing.h"
-
 #include "services/CatalogService.h"
 #include "services/CommandRegistry.h"
 #include "services/Commands.h"
@@ -22,17 +20,21 @@ int main()
         CatalogService service;
         CommandRegistry registry;
         for (auto& cmd : CreateDefaultCommands())
-        {
             registry.Register(std::move(cmd));
-        }
 
         ps::ConsoleWriteW(L"PS> ");
-        std::wstring line;
 
-        while (std::getline(std::wcin, line))
+#if defined(_WIN32)
+        std::wstring wideLine;
+        while (std::getline(std::wcin, wideLine))
         {
-            auto parsed = ParseCommandLine(WideToUtf8(line));
-
+            auto parsed = ParseCommandLine(WideToUtf8(wideLine));
+#else
+        std::string line;
+        while (std::getline(std::cin, line))
+        {
+            auto parsed = ParseCommandLine(line);
+#endif
             if (parsed.name.empty())
             {
                 ps::ConsoleWriteW(L"PS> ");
@@ -54,10 +56,9 @@ int main()
                 ps::ConsoleWriteW(Utf8ToWide(res.error));
                 ps::ConsoleWriteW(L"\n");
             }
+
             if (!res.output.empty())
-            {
                 ps::ConsoleWriteW(Utf8ToWide(res.output));
-            }
 
             if (res.shouldExit) break;
 

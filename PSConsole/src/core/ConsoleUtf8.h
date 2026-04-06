@@ -2,10 +2,15 @@
 
 // Console I/O helpers for correct Cyrillic/Unicode in cmd.exe and Visual Studio debug console.
 // Strategy:
-// 1) If stdout/stderr are real Windows console handles -> write using WriteConsoleW (UTF-16).
-// 2) Otherwise (pipe/redirection/VS output capture) -> fall back to UTF-8 bytes.
+// 1) On Windows, if stdout/stderr are real console handles, write using WriteConsoleW (UTF-16).
+// 2) Otherwise write UTF-8 bytes.
+// 3) On Linux/macOS, write UTF-8 to standard streams.
 
+#include <cstdio>
+#include <iostream>
 #include <string>
+
+#include "UtfConv.h"
 
 #if defined(_WIN32)
   #include <windows.h>
@@ -25,14 +30,10 @@ namespace ps
 
     inline void ConfigureConsoleForCyrillic()
     {
-        // Try to switch CRT wide streams to UTF-16 mode (works for real console windows).
-        // If VS/debugger captures output via pipes, this may be ignored — that's OK because
-        // we'll use WriteConsoleW when we can, and UTF-8 otherwise.
         _setmode(_fileno(stdin),  _O_U16TEXT);
         _setmode(_fileno(stdout), _O_U16TEXT);
         _setmode(_fileno(stderr), _O_U16TEXT);
 
-        // Keep console CPs consistent for any narrow output that might still happen.
         SetConsoleCP(CP_UTF8);
         SetConsoleOutputCP(CP_UTF8);
     }
@@ -47,10 +48,9 @@ namespace ps
             return;
         }
 
-        // Fallback: write UTF-8 bytes to stdout
-        int need = WideCharToMultiByte(CP_UTF8, 0, s.c_str(), (int)s.size(), nullptr, 0, nullptr, nullptr);
+        int need = WideCharToMultiByte(CP_UTF8, 0, s.c_str(), static_cast<int>(s.size()), nullptr, 0, nullptr, nullptr);
         std::string utf8(need, '\0');
-        WideCharToMultiByte(CP_UTF8, 0, s.c_str(), (int)s.size(), utf8.data(), need, nullptr, nullptr);
+        WideCharToMultiByte(CP_UTF8, 0, s.c_str(), static_cast<int>(s.size()), utf8.data(), need, nullptr, nullptr);
         _setmode(_fileno(stdout), _O_BINARY);
         fwrite(utf8.data(), 1, utf8.size(), stdout);
         fflush(stdout);
@@ -66,16 +66,26 @@ namespace ps
             return;
         }
 
-        int need = WideCharToMultiByte(CP_UTF8, 0, s.c_str(), (int)s.size(), nullptr, 0, nullptr, nullptr);
+        int need = WideCharToMultiByte(CP_UTF8, 0, s.c_str(), static_cast<int>(s.size()), nullptr, 0, nullptr, nullptr);
         std::string utf8(need, '\0');
-        WideCharToMultiByte(CP_UTF8, 0, s.c_str(), (int)s.size(), utf8.data(), need, nullptr, nullptr);
+        WideCharToMultiByte(CP_UTF8, 0, s.c_str(), static_cast<int>(s.size()), utf8.data(), need, nullptr, nullptr);
         _setmode(_fileno(stderr), _O_BINARY);
         fwrite(utf8.data(), 1, utf8.size(), stderr);
         fflush(stderr);
     }
 #else
     inline void ConfigureConsoleForCyrillic() {}
-    inline void ConsoleWriteW(const std::wstring& s) { (void)s; }
-    inline void ConsoleWriteErrW(const std::wstring& s) { (void)s; }
+
+    inline void ConsoleWriteW(const std::wstring& s)
+    {
+        std::cout << WideToUtf8(s);
+        std::cout.flush();
+    }
+
+    inline void ConsoleWriteErrW(const std::wstring& s)
+    {
+        std::cerr << WideToUtf8(s);
+        std::cerr.flush();
+    }
 #endif
 }
