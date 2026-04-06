@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Sources">
+      <UniqueIdentifier>{B20B2F02-7D30-49EE-BB0D-1B629CA061B9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{2E842966-E4D1-4908-B450-1E77E52A860F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Build">
+      <UniqueIdentifier>{C643F3B0-CF9D-49CC-9310-96AFA7E70D2C}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="main.cpp">
+      <Filter>Sources</Filter>
+    </None>
+    <None Include="MainWindow.cpp">
+      <Filter>Sources</Filter>
+    </None>
+    <None Include="OpenDialog.cpp">
+      <Filter>Sources</Filter>
+    </None>
+    <None Include="ComponentsDialog.cpp">
+      <Filter>Sources</Filter>
+    </None>
+    <None Include="SpecificationDialog.cpp">
+      <Filter>Sources</Filter>
+    </None>
+    <None Include="SpecItemDialog.cpp">
+      <Filter>Sources</Filter>
+    </None>
+    <None Include="MainWindow.h">
+      <Filter>Headers</Filter>
+    </None>
+    <None Include="OpenDialog.h">
+      <Filter>Headers</Filter>
+    </None>
+    <None Include="ComponentsDialog.h">
+      <Filter>Headers</Filter>
+    </None>
+    <None Include="SpecificationDialog.h">
+      <Filter>Headers</Filter>
+    </None>
+    <None Include="SpecItemDialog.h">
+      <Filter>Headers</Filter>
+    </None>
+    <None Include="..\CMakeLists.txt">
+      <Filter>Build</Filter>
+    </None>
+    <None Include="..\CMakePresets.json">
+      <Filter>Build</Filter>
+    </None>
+  </ItemGroup>
+</Project>

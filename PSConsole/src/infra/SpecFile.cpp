@@ -118,6 +118,15 @@ namespace ps
         m_file.Flush();
     }
 
+    void SpecFile::UpdateSpecItem(std::uint32_t offset, std::uint32_t componentPtr, std::uint16_t qty)
+    {
+        auto r = ReadRecordAt(offset);
+        r.componentPtr = componentPtr;
+        r.qty = qty;
+        WriteRecordAt(offset, r);
+        m_file.Flush();
+    }
+
     std::uint32_t SpecFile::RebuildSpecLinks(std::uint32_t firstSpecPtr)
     {
         if (firstSpecPtr == NullPtr) return NullPtr;

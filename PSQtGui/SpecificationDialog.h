@@ -1,6 +1,7 @@
 #pragma once
 #include <QDialog>
 
+class QComboBox;
 class QLineEdit;
 class QPushButton;
 class QTreeWidget;
@@ -16,6 +17,7 @@ public:
 
 private slots:
     void onFind();
+    void onAddFromOwner();
     void onContextMenuRequested(const QPoint& pos);
     void onAdd();
     void onEdit();
@@ -23,6 +25,10 @@ private slots:
 
 private:
     void rebuildTree();
+    void reloadOwners(const QString& preferredOwner = {});
+    void selectOwner(const QString& ownerName);
+    QStringList componentChoices(const QString& ownerName) const;
+    void openAddDialogForOwner(const QString& ownerName);
     void addChildrenRec(QTreeWidgetItem* parentItem, const QString& ownerName, int depth);
     void showError(const QString& msg);
 
@@ -30,8 +36,10 @@ private:
 
     QLineEdit* m_search = nullptr;
     QPushButton* m_find = nullptr;
+    QComboBox* m_owner = nullptr;
+    QPushButton* m_addLink = nullptr;
+    QPushButton* m_refresh = nullptr;
     QTreeWidget* m_tree = nullptr;
 
-    // context target
     QTreeWidgetItem* m_ctxItem = nullptr;
 };

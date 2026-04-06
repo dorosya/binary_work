@@ -21,6 +21,7 @@ namespace ps
 
         void MarkDeleted(std::uint32_t offset, bool deleted);
         void UpdateNext(std::uint32_t offset, std::uint32_t nextPtr);
+        void UpdateSpecItem(std::uint32_t offset, std::uint32_t componentPtr, std::uint16_t qty);
 
         std::uint32_t RebuildSpecLinks(std::uint32_t firstSpecPtr);
 

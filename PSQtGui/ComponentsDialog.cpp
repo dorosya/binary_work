@@ -1,18 +1,19 @@
 #include "ComponentsDialog.h"
 
+#include <QAbstractItemView>
+#include <QComboBox>
+#include <QHeaderView>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QLineEdit>
+#include <QMessageBox>
+#include <QTableWidget>
 #include <QToolBar>
 #include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QHeaderView>
-#include <QTableWidget>
-#include <QLineEdit>
-#include <QComboBox>
-#include <QLabel>
-#include <QMessageBox>
 
-#include "services/CatalogService.h"
 #include "core/Errors.h"
 #include "domain/Models.h"
+#include "services/CatalogService.h"
 
 static std::string ToUtf8Std(const QString& s)
 {
@@ -20,16 +21,6 @@ static std::string ToUtf8Std(const QString& s)
     return std::string(bytes.constData(), static_cast<std::size_t>(bytes.size()));
 }
 
-static int typeToIndex(ps::ComponentType t)
-{
-    switch (t)
-    {
-    case ps::ComponentType::Product: return 0;
-    case ps::ComponentType::Node: return 1;
-    case ps::ComponentType::Detail: return 2;
-    default: return 2;
-    }
-}
 static ps::ComponentType indexToType(int i)
 {
     if (i == 0) return ps::ComponentType::Product;
@@ -46,7 +37,6 @@ ComponentsDialog::ComponentsDialog(ps::CatalogService* service, QWidget* parent)
 
     auto* root = new QVBoxLayout(this);
 
-    // тулбар как в примере
     auto* tb = new QToolBar(this);
     m_actAdd = tb->addAction(QString::fromUtf8("Добавить"));
     m_actEdit = tb->addAction(QString::fromUtf8("Изменить"));
@@ -59,22 +49,19 @@ ComponentsDialog::ComponentsDialog(ps::CatalogService* service, QWidget* parent)
     connect(m_actCancel, &QAction::triggered, this, &ComponentsDialog::onCancel);
     connect(m_actSave, &QAction::triggered, this, &ComponentsDialog::onSave);
     connect(m_actDelete, &QAction::triggered, this, &ComponentsDialog::onDelete);
-
     root->addWidget(tb);
 
     m_table = new QTableWidget(this);
     m_table->setColumnCount(2);
-    m_table->setHorizontalHeaderLabels({QString::fromUtf8("Наименование"), QString::fromUtf8("Тип")});
+    m_table->setHorizontalHeaderLabels({ QString::fromUtf8("Наименование"), QString::fromUtf8("Тип") });
     m_table->horizontalHeader()->setStretchLastSection(true);
     m_table->verticalHeader()->setVisible(false);
     m_table->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_table->setSelectionMode(QAbstractItemView::SingleSelection);
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    connect(m_table, &QTableWidget::itemSelectionChanged, this, &ComponentsDialog::onSelectionChanged);
     root->addWidget(m_table, 1);
 
-    connect(m_table, &QTableWidget::itemSelectionChanged, this, &ComponentsDialog::onSelectionChanged);
-
-    // нижняя панель ввода
     auto* bottom = new QHBoxLayout();
     bottom->addWidget(new QLabel(QString::fromUtf8("Наименование"), this));
     m_name = new QLineEdit(this);
@@ -82,9 +69,12 @@ ComponentsDialog::ComponentsDialog(ps::CatalogService* service, QWidget* parent)
 
     bottom->addWidget(new QLabel(QString::fromUtf8("Тип"), this));
     m_type = new QComboBox(this);
-    m_type->addItems({QString::fromUtf8("Изделие"), QString::fromUtf8("Узел"), QString::fromUtf8("Деталь")});
+    m_type->addItems({
+        QString::fromUtf8("Изделие"),
+        QString::fromUtf8("Узел"),
+        QString::fromUtf8("Деталь")
+    });
     bottom->addWidget(m_type, 1);
-
     root->addLayout(bottom);
 
     reloadTable();
@@ -100,16 +90,16 @@ void ComponentsDialog::setMode(Mode m)
 {
     m_mode = m;
 
-    const bool editing = (m_mode != Mode::View);
+    const bool editing = m_mode != Mode::View;
     m_name->setEnabled(editing);
     m_type->setEnabled(editing);
 
     m_actSave->setEnabled(editing);
     m_actCancel->setEnabled(editing);
 
-    const bool hasSel = !m_table->selectedItems().isEmpty();
-    m_actEdit->setEnabled(!editing && hasSel);
-    m_actDelete->setEnabled(!editing && hasSel);
+    const bool hasSelection = !m_table->selectedItems().isEmpty();
+    m_actEdit->setEnabled(!editing && hasSelection);
+    m_actDelete->setEnabled(!editing && hasSelection);
     m_actAdd->setEnabled(!editing);
 
     if (m_mode == Mode::View)
@@ -129,19 +119,16 @@ void ComponentsDialog::reloadTable()
 {
     try
     {
-        auto list = m_service->ListComponents();
+        const auto list = m_service->ListComponents();
 
-        m_table->setRowCount(0);
         m_table->setRowCount(static_cast<int>(list.size()));
-
         for (int i = 0; i < static_cast<int>(list.size()); i++)
         {
-            const auto& r = list[static_cast<std::size_t>(i)];
-            auto* itName = new QTableWidgetItem(QString::fromUtf8(r.name.c_str()));
-            auto* itType = new QTableWidgetItem(QString::fromUtf8(ps::ToString(r.type).c_str()));
-            m_table->setItem(i, 0, itName);
-            m_table->setItem(i, 1, itType);
+            const auto& item = list[static_cast<std::size_t>(i)];
+            m_table->setItem(i, 0, new QTableWidgetItem(QString::fromUtf8(item.name.c_str())));
+            m_table->setItem(i, 1, new QTableWidgetItem(QString::fromUtf8(ps::ToString(item.type).c_str())));
         }
+
         if (m_table->rowCount() > 0) m_table->selectRow(0);
     }
     catch (const ps::PsException& ex)
@@ -154,8 +141,7 @@ void ComponentsDialog::onSelectionChanged()
 {
     if (m_mode != Mode::View) return;
 
-    const auto items = m_table->selectedItems();
-    if (items.isEmpty())
+    if (m_table->selectedItems().isEmpty())
     {
         m_name->clear();
         m_type->setCurrentIndex(2);
@@ -224,8 +210,8 @@ void ComponentsDialog::onDelete()
     if (m_table->selectedItems().isEmpty()) return;
     const auto name = m_table->item(m_table->currentRow(), 0)->text();
 
-    if (QMessageBox::question(this, QString::fromUtf8("Удалить"),
-        QString::fromUtf8("Удалить компонент \"%1\"?").arg(name)) != QMessageBox::Yes)
+    const auto question = QString::fromUtf8("Удалить компонент \"%1\"?").arg(name);
+    if (QMessageBox::question(this, QString::fromUtf8("Удалить"), question) != QMessageBox::Yes)
         return;
 
     try

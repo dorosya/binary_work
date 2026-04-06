@@ -26,6 +26,7 @@ namespace ps
 
         void InputComponent(const std::string& name, ComponentType type);
         void InputSpecItem(const std::string& ownerName, const std::string& partName, std::uint16_t qty = 1);
+        void UpdateSpecItem(const std::string& ownerName, const std::string& oldPartName, const std::string& newPartName, std::uint16_t qty = 1);
 
         void UpdateComponent(const std::string& oldName, const std::string& newName, ComponentType newType);
 
@@ -38,6 +39,7 @@ namespace ps
         void Truncate();
 
         std::vector<ComponentRecord> ListComponents();
+        std::vector<ComponentRecord> ListSpecificationRoots();
         std::vector<SpecItemView> ListSpecItems(const std::string& ownerName);
         std::string PrintSpecTree(const std::string& name);
 
@@ -53,6 +55,7 @@ namespace ps
         void EnsureOpen() const;
 
         std::vector<SpecRecord> ReadSpecChain(std::uint32_t firstSpecPtr);
+        bool WouldCreateCycle(std::uint32_t ownerPtr, std::uint32_t partPtr);
         void PrintTreeRec(std::string& out, const ComponentRecord& node, const std::string& prefix, bool isLast, int depth);
 
         void TruncateRebuildFiles();

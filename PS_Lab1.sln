@@ -4,6 +4,8 @@ VisualStudioVersion = 17.0.31912.275
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{BC8A1FFA-BEE3-4634-8014-F334798102B3}") = "PSConsole", "PSConsole\PSConsole.vcxproj", "{3B2A7D6E-3E61-4DAF-9B8F-3A71A8129E72}"
 EndProject
+Project("{BC8A1FFA-BEE3-4634-8014-F334798102B3}") = "PSQtGui", "PSQtGui\PSQtGui.vcxproj", "{A6C7B61E-0E6B-4D18-B2AE-1F3E0E58A9D1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -14,6 +16,10 @@ Global
 		{3B2A7D6E-3E61-4DAF-9B8F-3A71A8129E72}.Debug|x64.Build.0 = Debug|x64
 		{3B2A7D6E-3E61-4DAF-9B8F-3A71A8129E72}.Release|x64.ActiveCfg = Release|x64
 		{3B2A7D6E-3E61-4DAF-9B8F-3A71A8129E72}.Release|x64.Build.0 = Release|x64
+		{A6C7B61E-0E6B-4D18-B2AE-1F3E0E58A9D1}.Debug|x64.ActiveCfg = Debug|x64
+		{A6C7B61E-0E6B-4D18-B2AE-1F3E0E58A9D1}.Debug|x64.Build.0 = Debug|x64
+		{A6C7B61E-0E6B-4D18-B2AE-1F3E0E58A9D1}.Release|x64.ActiveCfg = Release|x64
+		{A6C7B61E-0E6B-4D18-B2AE-1F3E0E58A9D1}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

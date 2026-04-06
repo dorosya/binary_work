@@ -50,7 +50,12 @@ namespace ps
         if (t.empty()) return cmd;
 
         std::size_t i = 0;
-        while (i < t.size() && !std::isspace(static_cast<unsigned char>(t[i]))) i++;
+        while (i < t.size()
+            && !std::isspace(static_cast<unsigned char>(t[i]))
+            && t[i] != '(')
+        {
+            i++;
+        }
         cmd.name = t.substr(0, i);
 
         auto rest = Trim(t.substr(i));

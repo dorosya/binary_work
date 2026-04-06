@@ -1,9 +1,10 @@
 #include "CatalogService.h"
 #include "../core/Errors.h"
-#include <sstream>
-#include <unordered_map>
 #include <algorithm>
 #include <cstdio>
+#include <sstream>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace ps
 {
@@ -45,7 +46,11 @@ namespace ps
         m_specs.Open(prs);
     }
 
-    void CatalogService::Close() { m_products.Close(); m_specs.Close(); }
+    void CatalogService::Close()
+    {
+        m_products.Close();
+        m_specs.Close();
+    }
 
     void CatalogService::InputComponent(const std::string& name, ComponentType type)
     {
@@ -61,21 +66,16 @@ namespace ps
         if (!oldOpt.has_value()) throw ValidationException("Компонент не найден.");
 
         auto oldRec = *oldOpt;
-
         auto nm = TrimGuiName(newName);
         if (nm.empty()) throw ValidationException("Пустое имя компонента.");
         if (nm.size() > m_products.MaxNameLen()) throw ValidationException("Имя компонента длиннее maxNameLen (Create).");
 
-        if (TrimGuiName(oldRec.name) != nm)
-        {
-            if (m_products.FindActiveByName(nm).has_value())
-                throw ValidationException("Дублирование имен компонентов.");
-        }
+        if (TrimGuiName(oldRec.name) != nm && m_products.FindActiveByName(nm).has_value())
+            throw ValidationException("Дублирование имен компонентов.");
 
         m_products.UpdateComponent(oldRec.fileOffset, nm, newType);
         m_products.RebuildAlphabeticalLinks();
     }
-
 
     std::vector<SpecRecord> CatalogService::ReadSpecChain(std::uint32_t firstSpecPtr)
     {
@@ -90,9 +90,33 @@ namespace ps
         return out;
     }
 
+    bool CatalogService::WouldCreateCycle(std::uint32_t ownerPtr, std::uint32_t partPtr)
+    {
+        std::vector<std::uint32_t> stack{ partPtr };
+        std::unordered_set<std::uint32_t> visited;
+
+        while (!stack.empty())
+        {
+            auto current = stack.back();
+            stack.pop_back();
+
+            if (!visited.insert(current).second) continue;
+            if (current == ownerPtr) return true;
+
+            auto component = m_products.ReadRecordAt(current);
+            if (component.deleted || component.type == ComponentType::Detail) continue;
+
+            for (const auto& child : ReadSpecChain(component.firstSpecPtr))
+                stack.push_back(child.componentPtr);
+        }
+
+        return false;
+    }
+
     void CatalogService::InputSpecItem(const std::string& ownerName, const std::string& partName, std::uint16_t qty)
     {
         EnsureOpen();
+
         auto ownerOpt = m_products.FindActiveByName(ownerName);
         if (!ownerOpt.has_value()) throw ValidationException("Компонент-родитель не найден.");
 
@@ -104,9 +128,16 @@ namespace ps
 
         if (owner.type == ComponentType::Detail) throw ValidationException("Для детали нельзя добавлять спецификацию.");
         if (owner.fileOffset == part.fileOffset) throw ValidationException("Компонент не может входить в собственную спецификацию.");
+        if (WouldCreateCycle(owner.fileOffset, part.fileOffset))
+            throw ValidationException("Добавление связи создаёт цикл в структуре.");
+
+        for (const auto& spec : ReadSpecChain(owner.firstSpecPtr))
+        {
+            if (spec.componentPtr == part.fileOffset)
+                throw ValidationException("Такая связь уже указана в спецификации.");
+        }
 
         auto newSpecOff = m_specs.AddSpecItem(part.fileOffset, qty);
-
         if (owner.firstSpecPtr == NullPtr)
         {
             m_products.UpdatePointers(owner.fileOffset, newSpecOff, owner.nextPtr);
@@ -126,6 +157,50 @@ namespace ps
         }
     }
 
+    void CatalogService::UpdateSpecItem(const std::string& ownerName, const std::string& oldPartName, const std::string& newPartName, std::uint16_t qty)
+    {
+        EnsureOpen();
+
+        auto ownerOpt = m_products.FindActiveByName(ownerName);
+        if (!ownerOpt.has_value()) throw ValidationException("Компонент-родитель не найден.");
+
+        auto newPartOpt = m_products.FindActiveByName(newPartName);
+        if (!newPartOpt.has_value()) throw ValidationException("Комплектующее отсутствует в списке компонентов.");
+
+        auto owner = *ownerOpt;
+        auto newPart = *newPartOpt;
+
+        if (owner.type == ComponentType::Detail) throw ValidationException("У детали нет спецификации.");
+        if (owner.fileOffset == newPart.fileOffset) throw ValidationException("Компонент не может входить в собственную спецификацию.");
+        if (WouldCreateCycle(owner.fileOffset, newPart.fileOffset))
+            throw ValidationException("Добавление связи создаёт цикл в структуре.");
+
+        std::uint32_t targetSpecOffset = NullPtr;
+        std::uint32_t cur = owner.firstSpecPtr;
+        while (cur != NullPtr)
+        {
+            auto spec = m_specs.ReadRecordAt(cur);
+            if (!spec.deleted)
+            {
+                auto part = m_products.ReadRecordAt(spec.componentPtr);
+                if (part.name == oldPartName)
+                {
+                    targetSpecOffset = spec.fileOffset;
+                }
+                else if (part.fileOffset == newPart.fileOffset)
+                {
+                    throw ValidationException("Такая связь уже указана в спецификации.");
+                }
+            }
+            cur = spec.nextPtr;
+        }
+
+        if (targetSpecOffset == NullPtr)
+            throw ValidationException("Комплектующее в спецификации не найдено.");
+
+        m_specs.UpdateSpecItem(targetSpecOffset, newPart.fileOffset, qty);
+    }
+
     void CatalogService::DeleteComponent(const std::string& name)
     {
         EnsureOpen();
@@ -134,7 +209,7 @@ namespace ps
 
         auto rec = *recOpt;
         if (m_specs.HasActiveReferenceToComponent(rec.fileOffset))
-            throw ValidationException("Невозможно удалить: на компонент есть ссылки в спецификациях других компонент.");
+            throw ValidationException("Невозможно удалить: на компонент есть ссылки в спецификациях других компонентов.");
 
         m_products.MarkDeleted(rec.fileOffset, true);
     }
@@ -142,10 +217,11 @@ namespace ps
     void CatalogService::DeleteSpecItem(const std::string& ownerName, const std::string& partName)
     {
         EnsureOpen();
+
         auto ownerOpt = m_products.FindActiveByName(ownerName);
         if (!ownerOpt.has_value()) throw ValidationException("Компонент-родитель не найден.");
-        auto owner = *ownerOpt;
 
+        auto owner = *ownerOpt;
         if (owner.type == ComponentType::Detail) throw ValidationException("У детали нет спецификации.");
         if (owner.firstSpecPtr == NullPtr) throw ValidationException("Спецификация пуста.");
 
@@ -162,6 +238,7 @@ namespace ps
                 m_products.UpdatePointers(owner.fileOffset, newFirst, owner.nextPtr);
                 return;
             }
+
             cur = sr.nextPtr;
         }
 
@@ -172,13 +249,16 @@ namespace ps
     {
         EnsureOpen();
         for (const auto& r : m_products.ReadAllRecords())
+        {
             if (r.deleted) m_products.MarkDeleted(r.fileOffset, false);
+        }
         m_products.RebuildAlphabeticalLinks();
     }
 
     void CatalogService::RestoreComponent(const std::string& name)
     {
         EnsureOpen();
+
         bool found = false;
         for (const auto& r : m_products.ReadAllRecords())
         {
@@ -188,6 +268,7 @@ namespace ps
                 if (r.deleted) m_products.MarkDeleted(r.fileOffset, false);
             }
         }
+
         if (!found) throw ValidationException("Компонент не найден.");
         m_products.RebuildAlphabeticalLinks();
     }
@@ -195,6 +276,7 @@ namespace ps
     std::vector<ComponentRecord> CatalogService::ListComponents()
     {
         EnsureOpen();
+
         std::vector<ComponentRecord> out;
         std::uint32_t cur = m_products.Header().headPtr;
         while (cur != NullPtr)
@@ -206,9 +288,41 @@ namespace ps
         return out;
     }
 
+    std::vector<ComponentRecord> CatalogService::ListSpecificationRoots()
+    {
+        EnsureOpen();
+
+        auto components = ListComponents();
+        std::unordered_set<std::uint32_t> referenced;
+
+        for (const auto& owner : components)
+        {
+            if (owner.type == ComponentType::Detail) continue;
+
+            for (const auto& spec : ReadSpecChain(owner.firstSpecPtr))
+                referenced.insert(spec.componentPtr);
+        }
+
+        std::vector<ComponentRecord> roots;
+        for (const auto& component : components)
+        {
+            if (component.type == ComponentType::Product)
+            {
+                roots.push_back(component);
+                continue;
+            }
+
+            if (component.type == ComponentType::Node && referenced.find(component.fileOffset) == referenced.end())
+                roots.push_back(component);
+        }
+
+        return roots;
+    }
+
     std::vector<SpecItemView> CatalogService::ListSpecItems(const std::string& ownerName)
     {
         EnsureOpen();
+
         auto ownerOpt = m_products.FindActiveByName(ownerName);
         if (!ownerOpt.has_value()) throw ValidationException("Компонент-родитель не найден.");
 
@@ -216,8 +330,7 @@ namespace ps
         if (owner.type == ComponentType::Detail) throw ValidationException("У детали нет спецификации.");
 
         std::vector<SpecItemView> out;
-        auto chain = ReadSpecChain(owner.firstSpecPtr);
-        for (const auto& s : chain)
+        for (const auto& s : ReadSpecChain(owner.firstSpecPtr))
         {
             auto c = m_products.ReadRecordAt(s.componentPtr);
             SpecItemView v;
@@ -229,16 +342,15 @@ namespace ps
         return out;
     }
 
-
     void CatalogService::PrintTreeRec(std::string& out, const ComponentRecord& node, const std::string& prefix, bool isLast, int depth)
     {
         if (depth > 50)
         {
-            out += prefix + (isLast ? "└── " : "├── ") + "[...] (слишком глубокая спецификация)\n";
+            out += prefix + (isLast ? "\\-- " : "+-- ") + "[...] (слишком глубокая спецификация)\n";
             return;
         }
 
-        out += prefix + (isLast ? "└── " : "├── ");
+        out += prefix + (isLast ? "\\-- " : "+-- ");
         out += node.name + " (" + ToString(node.type) + ")\n";
 
         if (node.type == ComponentType::Detail) return;
@@ -247,7 +359,7 @@ namespace ps
         for (std::size_t i = 0; i < children.size(); i++)
         {
             auto childComp = m_products.ReadRecordAt(children[i].componentPtr);
-            auto nextPrefix = prefix + (isLast ? "    " : "│   ");
+            auto nextPrefix = prefix + (isLast ? "    " : "|   ");
             PrintTreeRec(out, childComp, nextPrefix, i + 1 == children.size(), depth + 1);
         }
     }
@@ -255,8 +367,10 @@ namespace ps
     std::string CatalogService::PrintSpecTree(const std::string& name)
     {
         EnsureOpen();
+
         auto compOpt = m_products.FindActiveByName(name);
         if (!compOpt.has_value()) throw ValidationException("Компонент не найден.");
+
         auto comp = *compOpt;
         if (comp.type == ComponentType::Detail) throw ValidationException("Для детали Print(имя) недопустима.");
 
@@ -303,13 +417,15 @@ namespace ps
     {
         const auto prdOld = m_products.PrdPath();
         const auto prsOld = m_products.PrsPath();
-
         const auto prdTmp = prdOld + ".tmp";
         const auto prsTmp = prsOld + ".tmp";
 
         auto allComponents = m_products.ReadAllRecords();
         std::vector<ComponentRecord> activeComps;
-        for (auto& c : allComponents) if (!c.deleted) activeComps.push_back(c);
+        for (auto& c : allComponents)
+        {
+            if (!c.deleted) activeComps.push_back(c);
+        }
 
         std::unordered_map<std::uint32_t, std::uint32_t> remap;
 
@@ -330,22 +446,21 @@ namespace ps
 
             std::uint32_t newFirst = NullPtr;
             std::uint32_t newPrev = NullPtr;
-
             std::uint32_t cur = c.firstSpecPtr;
+
             while (cur != NullPtr)
             {
                 auto sr = m_specs.ReadRecordAt(cur);
                 cur = sr.nextPtr;
 
                 if (sr.deleted) continue;
+
                 auto it = remap.find(sr.componentPtr);
                 if (it == remap.end()) continue;
 
                 auto newSpecOff = newPrs.AddSpecItem(it->second, sr.qty);
-
                 if (newFirst == NullPtr) newFirst = newSpecOff;
                 else newPrs.UpdateNext(newPrev, newSpecOff);
-
                 newPrev = newSpecOff;
             }
 

@@ -1,0 +1,50 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 23,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "vs2022-debug",
+      "displayName": "VS2022 Debug x64",
+      "generator": "Visual Studio 17 2022",
+      "binaryDir": "${sourceDir}/out/build/vs2022-debug",
+      "architecture": {
+        "value": "x64"
+      },
+      "cacheVariables": {
+        "BUILD_CONSOLE": "ON",
+        "BUILD_GUI": "ON"
+      }
+    },
+    {
+      "name": "vs2022-release",
+      "displayName": "VS2022 Release x64",
+      "generator": "Visual Studio 17 2022",
+      "binaryDir": "${sourceDir}/out/build/vs2022-release",
+      "architecture": {
+        "value": "x64"
+      },
+      "cacheVariables": {
+        "BUILD_CONSOLE": "ON",
+        "BUILD_GUI": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "build-vs2022-debug",
+      "displayName": "Build VS2022 Debug x64",
+      "configurePreset": "vs2022-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "build-vs2022-release",
+      "displayName": "Build VS2022 Release x64",
+      "configurePreset": "vs2022-release",
+      "configuration": "Release"
+    }
+  ]
+}
