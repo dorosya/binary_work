@@ -234,8 +234,6 @@ namespace ps
             if (!sr.deleted && comp.name == partName)
             {
                 m_specs.MarkDeleted(sr.fileOffset, true);
-                auto newFirst = m_specs.RebuildSpecLinks(owner.firstSpecPtr);
-                m_products.UpdatePointers(owner.fileOffset, newFirst, owner.nextPtr);
                 return;
             }
 
@@ -253,6 +251,20 @@ namespace ps
             if (r.deleted) m_products.MarkDeleted(r.fileOffset, false);
         }
         m_products.RebuildAlphabeticalLinks();
+
+        std::unordered_set<std::uint32_t> visitedSpecOffsets;
+        for (const auto& component : m_products.ReadAllRecords())
+        {
+            std::uint32_t cur = component.firstSpecPtr;
+            while (cur != NullPtr)
+            {
+                if (!visitedSpecOffsets.insert(cur).second) break;
+
+                auto spec = m_specs.ReadRecordAt(cur);
+                if (spec.deleted) m_specs.MarkDeleted(spec.fileOffset, false);
+                cur = spec.nextPtr;
+            }
+        }
     }
 
     void CatalogService::RestoreComponent(const std::string& name)
@@ -271,6 +283,94 @@ namespace ps
 
         if (!found) throw ValidationException("Компонент не найден.");
         m_products.RebuildAlphabeticalLinks();
+    }
+
+    void CatalogService::RestoreSpecItem(const std::string& ownerName, const std::string& partName)
+    {
+        EnsureOpen();
+
+        auto ownerOpt = m_products.FindActiveByName(ownerName);
+        if (!ownerOpt.has_value()) throw ValidationException("Компонент-родитель не найден.");
+
+        auto partOpt = m_products.FindActiveByName(partName);
+        if (!partOpt.has_value()) throw ValidationException("Комплектующее отсутствует в списке компонентов.");
+
+        auto owner = *ownerOpt;
+        auto part = *partOpt;
+
+        if (owner.type == ComponentType::Detail) throw ValidationException("У детали нет спецификации.");
+        if (owner.fileOffset == part.fileOffset) throw ValidationException("Компонент не может входить в собственную спецификацию.");
+        if (WouldCreateCycle(owner.fileOffset, part.fileOffset))
+            throw ValidationException("Добавление связи создаёт цикл в структуре.");
+
+        std::uint32_t cur = owner.firstSpecPtr;
+        std::uint32_t deletedInChain = NullPtr;
+        while (cur != NullPtr)
+        {
+            auto sr = m_specs.ReadRecordAt(cur);
+            if (sr.componentPtr == part.fileOffset)
+            {
+                if (!sr.deleted)
+                    throw ValidationException("Такая связь уже активна в спецификации.");
+                if (deletedInChain == NullPtr)
+                    deletedInChain = sr.fileOffset;
+            }
+
+            cur = sr.nextPtr;
+        }
+
+        if (deletedInChain != NullPtr)
+        {
+            m_specs.MarkDeleted(deletedInChain, false);
+            return;
+        }
+
+        std::unordered_set<std::uint32_t> linkedSpecOffsets;
+        for (const auto& component : m_products.ReadAllRecords())
+        {
+            std::uint32_t specPtr = component.firstSpecPtr;
+            while (specPtr != NullPtr)
+            {
+                if (!linkedSpecOffsets.insert(specPtr).second) break;
+                auto sr = m_specs.ReadRecordAt(specPtr);
+                specPtr = sr.nextPtr;
+            }
+        }
+
+        std::uint32_t targetOffset = NullPtr;
+        for (const auto& sr : m_specs.ReadAllRecords())
+        {
+            if (!sr.deleted || sr.componentPtr != part.fileOffset)
+                continue;
+            if (linkedSpecOffsets.find(sr.fileOffset) != linkedSpecOffsets.end())
+                continue;
+
+            if (targetOffset != NullPtr)
+                throw ValidationException("Нельзя однозначно восстановить связь: найдено несколько удалённых записей.");
+
+            targetOffset = sr.fileOffset;
+        }
+
+        if (targetOffset == NullPtr)
+            throw ValidationException("Удалённая связь в спецификации не найдена.");
+
+        m_specs.UpdateNext(targetOffset, NullPtr);
+        m_specs.MarkDeleted(targetOffset, false);
+
+        if (owner.firstSpecPtr == NullPtr)
+        {
+            m_products.UpdatePointers(owner.fileOffset, targetOffset, owner.nextPtr);
+            return;
+        }
+
+        std::uint32_t last = owner.firstSpecPtr;
+        while (true)
+        {
+            auto sr = m_specs.ReadRecordAt(last);
+            if (sr.nextPtr == NullPtr) break;
+            last = sr.nextPtr;
+        }
+        m_specs.UpdateNext(last, targetOffset);
     }
 
     std::vector<ComponentRecord> CatalogService::ListComponents()
@@ -397,6 +497,7 @@ namespace ps
             << "  Delete(имяКомпонента)\n"
             << "  Delete(имяКомпонента/имяКомплектующего)\n"
             << "  Restore(имяКомпонента)\n"
+            << "  Restore(имяКомпонента/имяКомплектующего)\n"
             << "  Restore(*)\n"
             << "  Truncate\n"
             << "  Print(имяКомпонента)\n"

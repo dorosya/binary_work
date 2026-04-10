@@ -139,7 +139,13 @@ namespace ps
             {
                 if (cmd.args.size() < 1) { r.error = "Restore: ожидается имя компонента или *."; return r; }
                 if (cmd.args[0] == "*") svc.RestoreAll();
-                else svc.RestoreComponent(cmd.args[0]);
+                else
+                {
+                    auto s = cmd.args[0];
+                    auto slash = s.find('/');
+                    if (slash == std::string::npos) svc.RestoreComponent(s);
+                    else svc.RestoreSpecItem(s.substr(0, slash), s.substr(slash + 1));
+                }
                 r.output = "OK\n";
             }
             catch (const PsException& ex) { r.error = ex.what(); }

@@ -87,7 +87,7 @@ namespace ps
     void ProductFile::WriteRecordAt(std::uint32_t offset, const ComponentRecord& rec)
     {
         m_file.Seek(offset);
-        std::uint8_t del = rec.deleted ? 1 : 0;
+        std::uint8_t del = rec.deleted ? 0xFF : 0;
         m_file.WriteLE<std::uint8_t>(del);
         m_file.WriteLE<std::uint32_t>(rec.firstSpecPtr);
         m_file.WriteLE<std::uint32_t>(rec.nextPtr);

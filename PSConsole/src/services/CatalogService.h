@@ -35,6 +35,7 @@ namespace ps
 
         void RestoreAll();
         void RestoreComponent(const std::string& name);
+        void RestoreSpecItem(const std::string& ownerName, const std::string& partName);
 
         void Truncate();
 

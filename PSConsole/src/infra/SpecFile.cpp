@@ -40,7 +40,7 @@ namespace ps
     void SpecFile::WriteRecordAt(std::uint32_t offset, const SpecRecord& rec)
     {
         m_file.Seek(offset);
-        std::uint8_t del = rec.deleted ? 1 : 0;
+        std::uint8_t del = rec.deleted ? 0xFF : 0;
         m_file.WriteLE<std::uint8_t>(del);
         m_file.WriteLE<std::uint32_t>(rec.componentPtr);
         m_file.WriteLE<std::uint16_t>(rec.qty);
